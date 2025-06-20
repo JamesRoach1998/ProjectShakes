@@ -1,0 +1,237 @@
+- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Shakes MVP</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 30px;
+      color: #333;
+    }
+    .container {
+      flex: 1;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    .translation-result {
+      margin-top: 30px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .translation-result h3 {
+      margin-top: 0;
+      color: #555;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 12px;
+      padding: 12px;
+      background: #fefefe;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .grid {
+      display: flex;
+      gap: 15px;
+      margin: 40px 0 80px;
+      justify-content: center;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      background: #eee;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      transition: background 0.2s, color 0.2s;
+    }
+    .cell.active {
+      background: #ff9800;
+      color: white;
+    }
+    .spoken-text {
+      margin: 10px 0;
+      font-style: italic;
+      color: #555;
+      background: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    /* Fixed “chat bar” */
+    form {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      background: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 40px);
+      max-width: 700px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: #ff9800;
+    }
+    button {
+      background: #ff9800;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #e68900;
+    }
+  </style>
+</head>
+<body>
+  <h1>Shakes</h1>
+
+  <div class="container">
+    {% if original %}
+      <p class="spoken-text">
+        <strong>You said:</strong> {{ original }}
+      </p>
+    {% endif %}
+
+    {% if result %}
+      <div class="translation-result">
+        <h3>Shakes Translation</h3>
+        <button onclick="playAll()" style="margin-bottom: 12px;">
+          ▶ Play Full Translation
+        </button>
+        <ul>
+          {% for w in result %}
+            <li>
+              <div>
+                <strong>{{ w.word }}</strong>
+                <span style="margin-left:8px; color:#666;">
+                  {{ w.phonemes|join:"_" }}
+                </span>
+              </div>
+              <div>
+                <button onclick="play('{{ w.pattern|escapejs }}')">▶</button>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="grid">
+      <div class="cell" id="L1">L1</div>
+      <div class="cell" id="L2">L2</div>
+      <div class="cell" id="C">C</div>
+      <div class="cell" id="R1">R1</div>
+      <div class="cell" id="R2">R2</div>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <input
+      type="text"
+      name="spoken_text"
+      placeholder="Type or speak…"
+      value="{{ original|default:'' }}"
+      required
+    />
+    <button type="submit">Send</button>
+  </form>
+
+  <script>
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // ─── adjust this for faster/slower speech ──────────────────────────────────────
+  const SPEECH_RATE = 2.5;
+
+  async function ensureAudio() {
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+  }
+
+  function playTone(freq, dur) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    // shorten the tone by dividing its duration
+    osc.stop(audioCtx.currentTime + dur / SPEECH_RATE);
+  }
+
+  async function play(pattern) {
+    await ensureAudio();
+    const steps = pattern.split('|').filter(Boolean);
+    steps.forEach((step, i) => {
+      const [loc, f, d] = step.split('-');
+      // shrink inter-phoneme gap
+      const phonemeInterval = 400 / SPEECH_RATE;
+      setTimeout(() => {
+        document.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
+        const el = document.getElementById(loc);
+        if (el) el.classList.add('active');
+        const freq = parseFloat(f), dur = parseFloat(d);
+        if (!isNaN(freq) && !isNaN(dur)) playTone(freq, dur);
+      }, i * phonemeInterval);
+    });
+  }
+
+  async function playAll() {
+    await ensureAudio();
+    const patterns = [
+      {% for w in result %}"{{ w.pattern }}",{% endfor %}
+    ].filter(Boolean);
+    patterns.forEach((pat, i) => {
+      // shrink inter-word gap
+      const wordInterval = 1000 / SPEECH_RATE;
+      setTimeout(() => play(pat), i * wordInterval);
+    });
+  }
+</script>
+
+
+
+
+
+</body>
+</html>
