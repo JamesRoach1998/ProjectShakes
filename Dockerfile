@@ -11,7 +11,9 @@ COPY . .
 # (static collection disabled for now)
 # RUN python manage.py collectstatic --noinput
 
+# … everything up to EXPOSE 8000 stays the same …
+
 EXPOSE 8000
 
-# Shell‐form CMD: this runs via /bin/sh -c, so $PORT will expand
-CMD python -m gunicorn shakes.wsgi:application --bind 0.0.0.0:$PORT
+# Bind to 8000 inside the container—Railway will route external traffic here.
+CMD python -m gunicorn shakes.wsgi:application --bind 0.0.0.0:8000
