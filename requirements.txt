@@ -1,0 +1,4 @@
+Django>=5.2
+pandas
+gunicorn>=20.1.0
+whitenoise
