@@ -1,35 +1,23 @@
 # Dockerfile
 
 FROM python:3.10-slim
-WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-# (static collection disabled for now)
-# RUN python manage.py collectstatic --noinput
-
-# … everything up to EXPOSE 8000 stays the same …
-
-EXPOSE 8000
-
-# Bind to 8000 inside the container—Railway will route external traffic here.
-CMD python -m gunicorn shakes.wsgi:application --bind 0.0.0.0:8000
-# Dockerfile excerpt
-FROM python:3.10-slim
-
-# Install Espeak (and its dependencies)
-RUN apt-get update && \
-    apt-get install -y espeak && \
+# Install espeak for phoneme generation
+RUN apt-get update && apt-get install -y espeak && \
     rm -rf /var/lib/apt/lists/*
 
+# Set working directory
 WORKDIR /app
 
+# Install Python deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy your Django project
 COPY . .
-…
 
+# Expose the port your app runs on
+EXPOSE 8000
+
+# Start Gunicorn
+CMD python -m gunicorn shakes.wsgi:application --bind 0.0.0.0:8000
