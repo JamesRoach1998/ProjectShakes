@@ -8,7 +8,7 @@ import pandas as pd
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH    = os.path.join(BASE_DIR, 'phoneme_vibration_table.csv')
 PROJECT_DIR = os.path.dirname(BASE_DIR)
-ESPEAK_BIN  = os.path.join(PROJECT_DIR, '.venv', 'bin', 'espeak')
+ESPEAK_BIN  = '/usr/bin/espeak'
 
 # ─── LOAD CSV once ────────────────────────────────────────────────────────────────
 df = pd.read_csv(CSV_PATH, encoding='utf-8-sig', dtype=str)
