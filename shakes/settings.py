@@ -54,3 +54,10 @@ TEMPLATES = [
 STATIC_URL = '/static/'
 ROOT_URLCONF = 'shakes.urls'
 SECRET_KEY = 'django-insecure-3a#2v=un^+d@evx4zr=*mq49c5&@v4a*7c#q1gf6qz3o(lom87'
+
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "projectshakes-production.up.railway.app",
+]
+
