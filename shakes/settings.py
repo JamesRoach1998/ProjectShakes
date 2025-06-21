@@ -35,10 +35,13 @@ INSTALLED_APPS = [
     'translator',  # Your app
 ]
 
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # or add your custom template path if needed
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # ← this line
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -50,6 +53,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 STATIC_URL = '/static/'
 ROOT_URLCONF = 'shakes.urls'
